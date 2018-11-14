@@ -1,98 +1,18 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-
-    
     <url>
-     <loc>/</loc>
-     <lastmod>2018-04-05</lastmod>
+     <loc>None</loc>
+     <lastmod>2018-11-14</lastmod>
      <changefreq>daily</changefreq>
     </url>
-    
-
-    
     <url>
-     <loc>/configuration/</loc>
-     <lastmod>2018-04-05</lastmod>
+     <loc>None</loc>
+     <lastmod>2018-11-14</lastmod>
      <changefreq>daily</changefreq>
     </url>
-    
-
-    
     <url>
-     <loc>/developping/</loc>
-     <lastmod>2018-04-05</lastmod>
+     <loc>None</loc>
+     <lastmod>2018-11-14</lastmod>
      <changefreq>daily</changefreq>
     </url>
-    
-
-    
-        
-    <url>
-     <loc>/datasets/main/edu.cornell.nlvr/</loc>
-     <lastmod>2018-04-05</lastmod>
-     <changefreq>daily</changefreq>
-    </url>
-        
-    <url>
-     <loc>/datasets/main/edu.standford.glove/</loc>
-     <lastmod>2018-04-05</lastmod>
-     <changefreq>daily</changefreq>
-    </url>
-        
-    <url>
-     <loc>/datasets/main/edu.standford.im2p/</loc>
-     <lastmod>2018-04-05</lastmod>
-     <changefreq>daily</changefreq>
-    </url>
-        
-    <url>
-     <loc>/datasets/main/edu.upenn.ldc.aquaint/</loc>
-     <lastmod>2018-04-05</lastmod>
-     <changefreq>daily</changefreq>
-    </url>
-        
-    <url>
-     <loc>/datasets/main/edu.upenn.ldc.nyt/</loc>
-     <lastmod>2018-04-05</lastmod>
-     <changefreq>daily</changefreq>
-    </url>
-        
-    <url>
-     <loc>/datasets/main/gov.nist.trec.adhoc/</loc>
-     <lastmod>2018-04-05</lastmod>
-     <changefreq>daily</changefreq>
-    </url>
-        
-    <url>
-     <loc>/datasets/main/gov.nist.trec.clueweb/</loc>
-     <lastmod>2018-04-05</lastmod>
-     <changefreq>daily</changefreq>
-    </url>
-        
-    <url>
-     <loc>/datasets/main/gov.nist.trec.index/</loc>
-     <lastmod>2018-04-05</lastmod>
-     <changefreq>daily</changefreq>
-    </url>
-        
-    <url>
-     <loc>/datasets/main/gov.nist.trec.tipster/</loc>
-     <lastmod>2018-04-05</lastmod>
-     <changefreq>daily</changefreq>
-    </url>
-        
-    <url>
-     <loc>/datasets/main/gov.nist.trec.web/</loc>
-     <lastmod>2018-04-05</lastmod>
-     <changefreq>daily</changefreq>
-    </url>
-        
-    <url>
-     <loc>/datasets/main/org.acm.recsys.cb2014/</loc>
-     <lastmod>2018-04-05</lastmod>
-     <changefreq>daily</changefreq>
-    </url>
-        
-    
-
 </urlset>
