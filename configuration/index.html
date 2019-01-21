@@ -34,7 +34,7 @@
         <meta name="lang:search.tokenizer" content="[\s\-]+">
       
       <link rel="shortcut icon" href="../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.0.4, mkdocs-material-3.0.5">
+      <meta name="generator" content="mkdocs-1.0.4, mkdocs-material-3.0.6">
     
     
       
@@ -216,6 +216,19 @@
       
         
       
+        
+  
+  
+    <li class="md-tabs__item">
+      
+        <a href="../download/" title="Handlers" class="md-tabs__link">
+          Handlers
+        </a>
+      
+    </li>
+  
+
+      
     </ul>
   </div>
 </nav>
@@ -310,6 +323,60 @@
     Format
   </a>
   
+    <nav class="md-nav">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#example" title="Example" class="md-nav__link">
+    Example
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#fields" title="Fields" class="md-nav__link">
+    Fields
+  </a>
+  
+    <nav class="md-nav">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#general-information" title="General information" class="md-nav__link">
+    General information
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#links" title="Links" class="md-nav__link">
+    Links
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#nested-datasets" title="Nested datasets" class="md-nav__link">
+    Nested datasets
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#download-and-data" title="Download and data" class="md-nav__link">
+    Download and data
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
       
@@ -332,6 +399,42 @@
     <a href="../developping/" title="Developping" class="md-nav__link">
       Developping
     </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item md-nav__item--nested">
+    
+      <input class="md-toggle md-nav__toggle" data-md-toggle="nav-4" type="checkbox" id="nav-4">
+    
+    <label class="md-nav__link" for="nav-4">
+      Handlers
+    </label>
+    <nav class="md-nav" data-md-component="collapsible" data-md-level="1">
+      <label class="md-nav__title" for="nav-4">
+        Handlers
+      </label>
+      <ul class="md-nav__list" data-md-scrollfix>
+        
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../download/" title="Download" class="md-nav__link">
+      Download
+    </a>
+  </li>
+
+        
+      </ul>
+    </nav>
   </li>
 
     
@@ -360,6 +463,60 @@
     Format
   </a>
   
+    <nav class="md-nav">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#example" title="Example" class="md-nav__link">
+    Example
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#fields" title="Fields" class="md-nav__link">
+    Fields
+  </a>
+  
+    <nav class="md-nav">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#general-information" title="General information" class="md-nav__link">
+    General information
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#links" title="Links" class="md-nav__link">
+    Links
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#nested-datasets" title="Nested datasets" class="md-nav__link">
+    Nested datasets
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#download-and-data" title="Download and data" class="md-nav__link">
+    Download and data
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
       
@@ -385,16 +542,91 @@
 <p>Configuration is provided by sets of <code>yaml</code> files organized hierarchically by organization name. For example,
 <code>nist.trec.documents.clueweb09</code> can be found in the file <code>nist/trec/documents.yaml</code>. The path <code>nist/trec</code> defines the organization.</p>
 <h2 id="format">Format</h2>
-<pre><code class="yaml">data:
-    -
-        id: ap88
-        description: Associated Press (1988)
-        pattern: ^AP88.*$
-        type: nist.trec.collection
+<h3 id="example">Example</h3>
+<p>The following is a complete example that describes the Glove dataset</p>
+<pre><code class="yaml">name: GloVe word embeddings
+website: http://nlp.stanford.edu/projects/glove/
+license: Public Domain Dedication and License
+tags:
+  - word embeddings
+papers:
+  technical description: http://nlp.stanford.edu/pubs/glove.pdf
+description: |
+  GloVe is an unsupervised learning algorithm for obtaining vector representations for words.
+  Training is performed on aggregated global word-word co-occurrence statistics from a corpus,
+  and the resulting representations showcase interesting linear substructures of the word vector space.
+...
+---
+# A variation of the dataset
+id: 6b
+description: Trained on Wikipedia 2014 + Gigaword 5
+download: 
+  handler: /archive:Zip
+  url: http://nlp.stanford.edu/data/glove.6B.zip
+size: 822M
+statistics:
+  tokens: 6G
+  vocabulary: 400K
+  cased: false
+  dimension: [50, 100, 200, 300]
+files:
+  &quot;50&quot;: glove.6B.50d.txt
+  &quot;100&quot;: glove.6B.100d.txt
+  &quot;200&quot;: glove.6B.200d.txt
+  &quot;300&quot;: glove.6B.300d.txt
+...
+---
+id: 42b
+description: Trained on Common Crawl
+download: 
+  handler: /single:File
+  url: http://nlp.stanford.edu/data/glove.42B.300d.zip
+size: 2.03G
+statistics:
+  cased: true
+  tokens: 840G
+  vocabulary: 2.2M
+  dimension: 300
+...
+---
+id: 840b
+description: Trained on Common Crawl
+download: 
+  handler: /single:File
+  url: http://nlp.stanford.edu/data/glove.840B.300d.zip
+size: 2.03G
+statistics:
+  cased: true
+  tokens: 840G
+  vocabulary: 2.2M
+  dimension: 300
+
 </code></pre>
 
-<h1 id="storage">Storage</h1>
-<p>Datasets can be stored in various places. <strong>datasets</strong> will remember where.</p>
+<h2 id="fields">Fields</h2>
+<h3 id="general-information">General information</h3>
+<ul>
+<li><code>abstract</code> flag used to mark an abstract dataset (sub-datasets have to be defined)</li>
+<li><code>name</code> gives a short name of the dataset</li>
+<li><code>description</code> gives a longer description of the dataset</li>
+<li><code>tags</code> is a list of tags (free vocabulary)</li>
+<li><code>tasks</code> is a list of tasks (free vocabulary)</li>
+<li><code>date</code> is the dataset release date </li>
+<li><code>version</code> is the version of the dataset</li>
+<li><a href="#links"><code>links</code></a> give links to the main website or other related resources (e.g. paper)</li>
+</ul>
+<h3 id="links">Links</h3>
+<p><code>links</code> is a dictionary that associates a name with some fields like</p>
+<ul>
+<li><code>url</code> The URL of the link</li>
+<li><code>type</code> Gives the type of resource: either <code>website</code> or <code>paper</code></li>
+</ul>
+<h3 id="nested-datasets">Nested datasets</h3>
+<p>Sub-datasets can be defined by defining several documents within the <code>yaml</code> file. The first document
+will be the main dataset, and the others will be subdatasets.</p>
+<h3 id="download-and-data">Download and data</h3>
+<p>The field <code>download</code> specifies how data should be downloaded. Generic handlers are defined
+in datamaestro (<a href="download.html">see documentation</a>) or defined in datamaestro extensions.</p>
                 
                   
                 
@@ -466,7 +698,7 @@
       
     </div>
     
-      <script src="../assets/javascripts/application.583bbe55.js"></script>
+      <script src="../assets/javascripts/application.5e60981f.js"></script>
       
       <script>app.initialize({version:"1.0.4",url:{base:".."}})</script>
       
