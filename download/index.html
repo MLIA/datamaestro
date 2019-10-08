@@ -34,7 +34,7 @@
         <meta name="lang:search.tokenizer" content="[\s\-]+">
       
       <link rel="shortcut icon" href="../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.0.4, mkdocs-material-3.0.6">
+      <meta name="generator" content="mkdocs-1.0.4, mkdocs-material-3.1.0">
     
     
       
@@ -42,7 +42,7 @@
       
     
     
-      <link rel="stylesheet" href="../assets/stylesheets/application.451f80e5.css">
+      <link rel="stylesheet" href="../assets/stylesheets/application.11e41852.css">
       
         <link rel="stylesheet" href="../assets/stylesheets/application-palette.22915126.css">
       
@@ -53,7 +53,7 @@
       
     
     
-      <script src="../assets/javascripts/modernizr.1aa3b519.js"></script>
+      <script src="../assets/javascripts/modernizr.20ef595d.js"></script>
     
     
       
@@ -63,6 +63,7 @@
       
     
     <link rel="stylesheet" href="../assets/fonts/material-icons.css">
+    
     
     
   </head>
@@ -370,26 +371,39 @@
     Single file
   </a>
   
+    <nav class="md-nav">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#singlefile" title="/single:File" class="md-nav__link">
+    /single:File
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
-  <a href="#archives" title="Archives" class="md-nav__link">
-    Archives
+  <a href="#set-of-files" title="Set of files" class="md-nav__link">
+    Set of files
   </a>
   
     <nav class="md-nav">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#archivezip" title="/archive:Zip" class="md-nav__link">
-    /archive:Zip
+  <a href="#multiplelist" title="/multiple:List" class="md-nav__link">
+    /multiple:List
   </a>
   
 </li>
         
           <li class="md-nav__item">
-  <a href="#archivetar" title="/archive:Tar" class="md-nav__link">
-    /archive:Tar
+  <a href="#archives" title="Archives" class="md-nav__link">
+    Archives
   </a>
   
 </li>
@@ -440,26 +454,39 @@
     Single file
   </a>
   
+    <nav class="md-nav">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#singlefile" title="/single:File" class="md-nav__link">
+    /single:File
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
-  <a href="#archives" title="Archives" class="md-nav__link">
-    Archives
+  <a href="#set-of-files" title="Set of files" class="md-nav__link">
+    Set of files
   </a>
   
     <nav class="md-nav">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#archivezip" title="/archive:Zip" class="md-nav__link">
-    /archive:Zip
+  <a href="#multiplelist" title="/multiple:List" class="md-nav__link">
+    /multiple:List
   </a>
   
 </li>
         
           <li class="md-nav__item">
-  <a href="#archivetar" title="/archive:Tar" class="md-nav__link">
-    /archive:Tar
+  <a href="#archives" title="Archives" class="md-nav__link">
+    Archives
   </a>
   
 </li>
@@ -489,16 +516,44 @@
                 
                 
                 <h1 id="download-handlers">Download handlers</h1>
+<p>A handler can be specified using</p>
+<p><code>module/subpackage:class</code></p>
+<p>will map to class <code>class</code> in <code>&lt;module&gt;.handlers.&lt;handlertype&gt;.subpackage</code></p>
+<p>Two shortcuts can be used:
+- <code>/subpackage:class</code>: <code>&lt;module&gt;</code> = datamaestro
+- <code>subpackage:class</code>: <code>&lt;module&gt;</code> = repository module</p>
 <h2 id="single-file">Single file</h2>
-<h2 id="archives">Archives</h2>
-<h3 id="archivezip">/archive:Zip</h3>
+<h3 id="singlefile">/single:File</h3>
+<p>Parameters:</p>
 <ul>
-<li><code>url</code>: link to the ZIP archive</li>
+<li><code>url</code> The URL to download</li>
+<li><code>name</code> (<em>optional</em>): name of the file</li>
+<li><code>transforms</code>: list of transformations</li>
 </ul>
-<h3 id="archivetar">/archive:Tar</h3>
+<h2 id="set-of-files">Set of files</h2>
+<h3 id="multiplelist">/multiple:List</h3>
+<p>A set of files or folders, each being handled by its own download handler.</p>
+<details class="example"><summary>Usage</summary><p>This shows how to specify three files</p>
+<div class="highlight"><pre><span></span><span class="l l-Scalar l-Scalar-Plain">download</span><span class="p p-Indicator">:</span> <span class="kt">!@/multiple:List</span>
+    <span class="l l-Scalar l-Scalar-Plain">train</span><span class="p p-Indicator">:</span> <span class="kt">!@/single:File</span>
+        <span class="l l-Scalar l-Scalar-Plain">url</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">https://s3.amazonaws.com/my89public/quac/train_v0.2.json</span>
+    <span class="l l-Scalar l-Scalar-Plain">test</span><span class="p p-Indicator">:</span> <span class="kt">!@/single:File</span>
+        <span class="l l-Scalar l-Scalar-Plain">url</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">https://s3.amazonaws.com/my89public/quac/val_v0.2.json</span>
+    <span class="l l-Scalar l-Scalar-Plain">scorer</span><span class="p p-Indicator">:</span> <span class="kt">!@/single:File</span>
+        <span class="l l-Scalar l-Scalar-Plain">description</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">Evaluation script</span> 
+        <span class="l l-Scalar l-Scalar-Plain">url</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">https://s3.amazonaws.com/my89public/quac/scorer.py</span>
+</pre></div>
+
+</details>
+<h3 id="archives">Archives</h3>
+<ul>
+<li>/archive:Zip</li>
+<li>/archive:Tar</li>
+</ul>
 <p>Transparent decompression of the archive</p>
 <ul>
-<li><code>url</code>: link to the TAR archive</li>
+<li><code>url</code>: link to the archive</li>
+<li><code>path</code>: path to a subdirectory to extract (the rest will be ignored)</li>
 </ul>
                 
                   
@@ -557,7 +612,7 @@
       
     </div>
     
-      <script src="../assets/javascripts/application.5e60981f.js"></script>
+      <script src="../assets/javascripts/application.9e1f3b71.js"></script>
       
       <script>app.initialize({version:"1.0.4",url:{base:".."}})</script>
       
