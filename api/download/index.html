@@ -65,7 +65,7 @@
     <link rel="stylesheet" href="../../assets/fonts/material-icons.css">
     
     
-      <link rel="stylesheet" href="../../extra.css">
+      <link rel="stylesheet" href="../../style.css">
     
     
       
@@ -396,6 +396,53 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#links" class="md-nav__link">
+    Links
+  </a>
+  
+    <nav class="md-nav">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#link-with-another-dataset-path" class="md-nav__link">
+    Link with another dataset path
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#link-to-a-folder" class="md-nav__link">
+    Link to a folder
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#syncing" class="md-nav__link">
+    Syncing
+  </a>
+  
+    <nav class="md-nav">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#synchronize-with-google-sync" class="md-nav__link">
+    Synchronize with Google sync
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
       
       
       
@@ -496,6 +543,53 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#links" class="md-nav__link">
+    Links
+  </a>
+  
+    <nav class="md-nav">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#link-with-another-dataset-path" class="md-nav__link">
+    Link with another dataset path
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#link-to-a-folder" class="md-nav__link">
+    Link to a folder
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#syncing" class="md-nav__link">
+    Syncing
+  </a>
+  
+    <nav class="md-nav">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#synchronize-with-google-sync" class="md-nav__link">
+    Synchronize with Google sync
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
       
       
       
@@ -540,7 +634,7 @@
 <ul>
 <li><code>varname</code> (<code>?</code>): The name of the variable when defining the dataset</li>
 <li><code>url</code> (<code>str</code>): The archive URL</li>
-<li><code>subpath</code> (<code>str</code>): A subpath in the archive; only files from this subpath will be extracted            </li>
+<li><code>subpath</code> (<code>str</code>): A subpath in the archive; only files from this subpath will be extracted</li>
 <li><code>files</code> (<code>Set[str]</code>): A set of files; if present, only download those</li>
 </ul>
 <h3 id="downloads-and-extract-the-content-of-the-archive_1">Downloads and extract the content of the archive</h3>
@@ -548,8 +642,30 @@
 <ul>
 <li><code>varname</code> (<code>?</code>): The name of the variable when defining the dataset</li>
 <li><code>url</code> (<code>str</code>): The archive URL</li>
-<li><code>subpath</code> (<code>str</code>): A subpath in the archive; only files from this subpath will be extracted            </li>
+<li><code>subpath</code> (<code>str</code>): A subpath in the archive; only files from this subpath will be extracted</li>
 <li><code>files</code> (<code>Set[str]</code>): A set of files; if present, only download those</li>
+</ul>
+<h2 id="links">Links</h2>
+<p>Package <code>datamaestro.download.links</code></p>
+<h3 id="link-with-another-dataset-path">Link with another dataset path</h3>
+<p><code>@links(varname: str, **links: List[datamaestro.definitions.DatasetDefinition])</code></p>
+<ul>
+<li><code>varname</code> (<code>str</code>): The name of the variable when defining the dataset</li>
+<li><code>links</code> (<code>List[datamaestro.definitions.DatasetDefinition]</code>): A list of</li>
+</ul>
+<h3 id="link-to-a-folder">Link to a folder</h3>
+<p><code>@linkfolder(varname: str, proposals)</code></p>
+<ul>
+<li><code>varname</code> (<code>str</code>): Name of the variable</li>
+<li><code>proposals</code> (<code>?</code>): List of potential paths</li>
+</ul>
+<h2 id="syncing">Syncing</h2>
+<p>Package <code>datamaestro.download.sync</code></p>
+<h3 id="synchronize-with-google-sync">Synchronize with Google sync</h3>
+<p><code>@gsync(varname: str, url: str)</code></p>
+<ul>
+<li><code>varname</code> (<code>str</code>): Variable name</li>
+<li><code>url</code> (<code>str</code>): The google sync URL (<code>gs://...</code>)</li>
 </ul>
                 
                   
