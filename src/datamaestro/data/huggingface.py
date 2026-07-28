@@ -17,6 +17,8 @@ from . import Base
 import logging
 from experimaestro import Param, Meta, field
 
+from datamaestro.download.huggingface import hf_download_and_prepare
+
 
 class HuggingFaceDataset(Base):
     repo_id: Param[str]
@@ -39,21 +41,58 @@ class HuggingFaceDataset(Base):
     ``Meta`` because the logical dataset is the same regardless of where
     the bytes come from."""
 
+    @property
+    def source(self) -> str:
+        """Where ``datasets`` should load from: local mirror or Hub repo."""
+        return str(self.local_path) if self.local_path is not None else self.repo_id
+
+    def download(self):
+        """Materialise the dataset on disk (Arrow shards in the HF cache).
+
+        ``HuggingFaceDataset`` delegates resource management to the
+        ``datasets`` library, so the generic download machinery has nothing
+        to fetch: without this override, ``prepare_dataset(..., download=True)``
+        would be a no-op and the actual download would only happen on the
+        first access to :attr:`data` — typically inside a job, or on a
+        login/submission node (see issue #27).
+
+        When :attr:`split` is set, only that split is fetched — see
+        :func:`~datamaestro.download.huggingface.hf_download_and_prepare`.
+        """
+        super().download()
+
+        # Streaming mode never materialises anything locally.
+        if self.streaming:
+            return
+
+        hf_download_and_prepare(
+            self.source, self.name, data_files=self.data_files, split=self.split
+        )
+
     @cached_property
     def data(self):
-        try:
-            from datasets import load_dataset
-        except ModuleNotFoundError:
-            logging.error("the datasets library is not installed:")
-            logging.error("pip install datasets")
-            raise
+        if self.streaming:
+            try:
+                from datasets import load_dataset
+            except ModuleNotFoundError:
+                logging.error("the datasets library is not installed:")
+                logging.error("pip install datasets")
+                raise
 
-        source = str(self.local_path) if self.local_path is not None else self.repo_id
-        ds = load_dataset(
-            source,
-            self.name,
-            data_files=self.data_files,
-            split=self.split,
-            streaming=self.streaming,
+            return load_dataset(
+                self.source,
+                self.name,
+                data_files=self.data_files,
+                split=self.split,
+                streaming=True,
+            )
+
+        # Same builder as :meth:`download` — a plain ``load_dataset`` would
+        # resolve to a different cache directory when the build was
+        # restricted to a single split, and re-fetch the whole dataset. On a
+        # warm cache the prepare step is a no-op; on a cold one this is
+        # exactly what ``load_dataset`` does internally.
+        builder = hf_download_and_prepare(
+            self.source, self.name, data_files=self.data_files, split=self.split
         )
-        return ds
+        return builder.as_dataset(split=self.split)

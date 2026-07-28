@@ -130,6 +130,9 @@ class TestGetHelpers:
 def fake_datasets(monkeypatch):
     fake = types.ModuleType("datasets")
     fake.load_dataset = MagicMock(return_value=MagicMock(name="FakeDataset"))
+    builder = MagicMock(name="FakeBuilder")
+    builder.config.data_files = None
+    fake.load_dataset_builder = MagicMock(return_value=builder)
     monkeypatch.setitem(sys.modules, "datasets", fake)
     return fake
 
@@ -147,15 +150,17 @@ class TestHFDownloaderResolver:
         ok = dl.download()
 
         assert ok is True
-        # local_path now set; load_dataset NOT called.
+        # local_path now set; nothing fetched.
         assert dl.local_path == repo
         fake_datasets.load_dataset.assert_not_called()
+        fake_datasets.load_dataset_builder.assert_not_called()
 
-    def test_no_mirror_falls_back_to_load_dataset(self, monkeypatch, fake_datasets):
+    def test_no_mirror_falls_back_to_hub_fetch(self, monkeypatch, fake_datasets):
         monkeypatch.delenv(_EnvHFResolver.DATASETS_ENV, raising=False)
         dl = HFDownloader("var", repo_id="org/ds")
         dl.download()
-        fake_datasets.load_dataset.assert_called_once()
+        fake_datasets.load_dataset_builder.assert_called_once()
+        fake_datasets.load_dataset_builder.return_value.download_and_prepare.assert_called_once()
 
 
 # ---- HFSnapshotDownloader resolver integration ---------------------------

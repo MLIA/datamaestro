@@ -18,6 +18,7 @@ parameters that only change *how* it is loaded (``streaming``,
 from __future__ import annotations
 
 import logging
+import re
 from pathlib import Path
 
 from datamaestro.download import (
@@ -28,6 +29,104 @@ from datamaestro.download import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+# ---- Shared "materialise on disk" helper ---------------------------------
+
+# A split expression we can map back to a single split: a bare name, or a
+# name followed by a slice (``train[:10%]``). Compound expressions such as
+# ``train+test`` deliberately do not match.
+_SPLIT_RE = re.compile(r"^([\w.\-]+)(\[.*\])?$")
+
+
+def _base_split(split: str | None) -> str | None:
+    """The split name ``split`` refers to, or None if it spans several."""
+    if split is None:
+        return None
+    m = _SPLIT_RE.match(split.strip())
+    return m.group(1) if m else None
+
+
+def hf_builder(
+    source: str,
+    name: str | None = None,
+    data_files: str | None = None,
+    split: str | None = None,
+):
+    """Build a ``datasets`` builder, restricted to ``split`` when possible.
+
+    ``DatasetBuilder.download_and_prepare`` has no split argument: it always
+    prepares every split the builder knows about. The one lever available is
+    the set of data files, so when ``split`` names a single split *and* the
+    builder resolved its data files per split (the case for all packaged
+    builders — parquet, json, csv, …), we rebuild it over that split's files
+    only. Script-based builders, which expose no per-split ``data_files``,
+    fall back to preparing everything.
+
+    Returns:
+        A ``(builder, restricted)`` pair, ``restricted`` telling whether the
+        builder covers only ``split``.
+    """
+    try:
+        from datasets import load_dataset_builder
+    except ModuleNotFoundError:
+        logger.error("the datasets library is not installed:")
+        logger.error("pip install datasets")
+        raise
+
+    builder = load_dataset_builder(source, name, data_files=data_files)
+
+    base = _base_split(split)
+    if base is None:
+        return builder, False
+
+    resolved = builder.config.data_files
+    # Nothing to gain when the builder already covers a single split.
+    if not isinstance(resolved, dict) or base not in resolved or len(resolved) <= 1:
+        return builder, False
+
+    logger.debug(
+        "[hf] restricting %s to split %r (%d/%d splits)",
+        source,
+        base,
+        1,
+        len(resolved),
+    )
+    restricted = load_dataset_builder(
+        source, name, data_files={base: list(resolved[base])}
+    )
+    return restricted, True
+
+
+def hf_download_and_prepare(
+    source: str,
+    name: str | None = None,
+    data_files: str | None = None,
+    split: str | None = None,
+):
+    """Materialise a HuggingFace dataset in the local cache.
+
+    Goes through ``download_and_prepare`` rather than ``load_dataset``: the
+    Arrow shards are written to disk without the ``Dataset`` object ever
+    being instantiated, which is what makes this usable on a login node for
+    a large dataset. Idempotent — a warm cache makes it a near no-op.
+
+    Returns the builder, so callers that *do* want the data can follow up
+    with ``builder.as_dataset(split=...)``. Going through the same builder
+    matters: restricting the data files changes the builder's ``config_id``,
+    hence its cache directory, so a caller that prepared here and then read
+    via a plain ``load_dataset`` would miss the cache and fetch everything
+    a second time. The flip side is that asking for one split and later for
+    the whole dataset fills two cache directories — a split-restricted build
+    is a saving for pipelines that only ever want that split.
+    """
+    builder, restricted = hf_builder(source, name, data_files, split)
+
+    # A split-restricted build records fewer splits than the dataset
+    # metadata declares, which trips ``verify_splits``.
+    kwargs = {"verification_mode": "no_checks"} if restricted else {}
+    builder.download_and_prepare(**kwargs)
+    return builder
 
 
 class HFDownloader(ValueResource):
@@ -116,19 +215,16 @@ class HFDownloader(ValueResource):
                 )
                 return True
 
-        try:
-            from datasets import load_dataset
-        except ModuleNotFoundError:
-            logger.error("the datasets library is not installed:")
-            logger.error("pip install datasets")
-            raise
+        # Streaming mode materialises nothing locally: there is no download
+        # to perform, and building the iterator here would be wasted work.
+        if self.streaming:
+            return True
 
-        self._dataset = load_dataset(
+        hf_download_and_prepare(
             self.repo_id,
             self.config_name,
             data_files=self.data_files,
             split=self.split,
-            streaming=self.streaming,
         )
         return True
 

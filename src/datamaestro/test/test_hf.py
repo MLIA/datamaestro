@@ -28,11 +28,40 @@ from datamaestro.download.huggingface import HFDownloader
 
 @pytest.fixture
 def fake_datasets(monkeypatch):
-    """Inject a fake ``datasets`` module so tests don't touch the Hub."""
+    """Inject a fake ``datasets`` module so tests don't touch the Hub.
+
+    ``load_dataset_builder`` models the real resolution closely enough for
+    the split-restriction logic: a builder created without explicit
+    ``data_files`` exposes one entry per split (as packaged builders do),
+    and one created with explicit ``data_files`` echoes them back.
+    """
     fake = types.ModuleType("datasets")
     fake.load_dataset = MagicMock(return_value=MagicMock(name="FakeDataset"))
+
+    # Splits the fake Hub repo advertises; tests may override.
+    fake.SPLITS = ["train", "validation", "test"]
+    # Every builder handed out, in order.
+    fake.builders = []
+
+    def load_dataset_builder(source, name=None, data_files=None):
+        builder = MagicMock(name="FakeBuilder")
+        builder.config.data_files = (
+            {s: [f"hf://{source}/{s}.parquet"] for s in fake.SPLITS}
+            if data_files is None
+            else data_files
+        )
+        fake.builders.append(builder)
+        return builder
+
+    fake.load_dataset_builder = MagicMock(side_effect=load_dataset_builder)
     monkeypatch.setitem(sys.modules, "datasets", fake)
     return fake
+
+
+def prepared(fake_datasets):
+    """The builder that was actually prepared (the restricted one, if any)."""
+    (builder,) = [b for b in fake_datasets.builders if b.download_and_prepare.called]
+    return builder
 
 
 # ---- HuggingFaceDataset.data --------------------------------------------
@@ -66,21 +95,149 @@ class TestHuggingFaceDatasetData:
         )
         _ = ds.data
         # Source is the local path, not the repo id.
-        fake_datasets.load_dataset.assert_called_once()
-        positional = fake_datasets.load_dataset.call_args.args
+        positional = fake_datasets.load_dataset_builder.call_args.args
         assert positional[0] == str(local)
         assert positional[1] is None  # no name
 
     def test_default_args(self, fake_datasets):
+        """Non-streaming access goes through the builder, and returns what
+        ``as_dataset`` gives us (not ``load_dataset``)."""
         ds = HuggingFaceDataset.C(id="test.hf.3", repo_id="user/dataset")
-        _ = ds.data
-        fake_datasets.load_dataset.assert_called_once_with(
+        data = ds.data
+        fake_datasets.load_dataset_builder.assert_called_once_with(
             "user/dataset",
             None,  # name
             data_files=None,
-            split=None,
-            streaming=False,
         )
+        builder = prepared(fake_datasets)
+        builder.as_dataset.assert_called_once_with(split=None)
+        assert data is builder.as_dataset.return_value
+        fake_datasets.load_dataset.assert_not_called()
+
+    def test_data_reuses_the_download_builder(self, fake_datasets):
+        """Reading a single split must go through the same (restricted)
+        builder as ``download`` — a plain ``load_dataset`` would resolve to
+        another cache directory and re-fetch everything."""
+        ds = HuggingFaceDataset.C(id="test.hf.4", repo_id="user/dataset", split="train")
+        data = ds.data
+        builder = prepared(fake_datasets)
+        assert builder.config.data_files == {
+            "train": ["hf://user/dataset/train.parquet"]
+        }
+        builder.as_dataset.assert_called_once_with(split="train")
+        assert data is builder.as_dataset.return_value
+        fake_datasets.load_dataset.assert_not_called()
+
+
+# ---- HuggingFaceDataset.download (issue #27) -----------------------------
+
+
+class TestHuggingFaceDatasetDownload:
+    def test_download_prepares_builder(self, fake_datasets):
+        """``download()`` must materialise the Arrow shards, and must do so
+        without instantiating the ``Dataset`` object in memory."""
+        ds = HuggingFaceDataset.C(
+            id="test.hf.dl.1",
+            repo_id="user/dataset",
+            name="config-a",
+            data_files="train.jsonl.gz",
+        )
+        ds.download()
+
+        fake_datasets.load_dataset_builder.assert_called_once_with(
+            "user/dataset",
+            "config-a",
+            data_files="train.jsonl.gz",
+        )
+        prepared(fake_datasets).download_and_prepare.assert_called_once_with()
+        # No in-RAM instantiation of the dataset.
+        fake_datasets.load_dataset.assert_not_called()
+
+    def test_download_uses_local_path(self, fake_datasets, tmp_path):
+        local = tmp_path / "mirror"
+        local.mkdir()
+        ds = HuggingFaceDataset.C(
+            id="test.hf.dl.2",
+            repo_id="user/dataset",
+            local_path=local,
+        )
+        ds.download()
+        assert fake_datasets.load_dataset_builder.call_args.args[0] == str(local)
+
+    def test_download_streaming_is_noop(self, fake_datasets):
+        ds = HuggingFaceDataset.C(
+            id="test.hf.dl.3", repo_id="user/dataset", streaming=True
+        )
+        ds.download()
+        fake_datasets.load_dataset_builder.assert_not_called()
+
+    def test_prepare_triggers_download(self, fake_datasets):
+        """``prepare()`` is what experimaestro calls before a task runs."""
+        ds = HuggingFaceDataset.C(id="test.hf.dl.4", repo_id="user/dataset")
+        assert ds.prepare() is ds
+        prepared(fake_datasets).download_and_prepare.assert_called_once()
+
+
+class TestHuggingFaceDatasetSplitRestriction:
+    """Only the requested split should be fetched (``download_and_prepare``
+    has no split argument, so we restrict the builder's data files)."""
+
+    def _download(self, fake_datasets, **kwargs):
+        ds = HuggingFaceDataset.C(id="test.hf.sp", repo_id="user/dataset", **kwargs)
+        ds.download()
+        return prepared(fake_datasets)
+
+    def test_restricts_to_requested_split(self, fake_datasets):
+        builder = self._download(fake_datasets, split="validation")
+        assert builder.config.data_files == {
+            "validation": ["hf://user/dataset/validation.parquet"]
+        }
+        # Split checks compare against the metadata, which lists all splits.
+        builder.download_and_prepare.assert_called_once_with(
+            verification_mode="no_checks"
+        )
+
+    def test_restricts_on_a_sliced_split(self, fake_datasets):
+        builder = self._download(fake_datasets, split="train[:10%]")
+        assert list(builder.config.data_files) == ["train"]
+
+    def test_no_restriction_for_compound_split(self, fake_datasets):
+        """``train+test`` spans several splits: prepare everything."""
+        builder = self._download(fake_datasets, split="train+test")
+        assert list(builder.config.data_files) == ["train", "validation", "test"]
+        builder.download_and_prepare.assert_called_once_with()
+
+    def test_no_restriction_without_split(self, fake_datasets):
+        builder = self._download(fake_datasets)
+        assert list(builder.config.data_files) == ["train", "validation", "test"]
+        builder.download_and_prepare.assert_called_once_with()
+
+    def test_no_restriction_for_unknown_split(self, fake_datasets):
+        """A split the builder does not advertise: leave it alone and let
+        ``datasets`` raise its own error downstream."""
+        builder = self._download(fake_datasets, split="nonexistent")
+        assert list(builder.config.data_files) == ["train", "validation", "test"]
+
+    def test_no_restriction_when_already_single_split(self, fake_datasets):
+        fake_datasets.SPLITS = ["train"]
+        builder = self._download(fake_datasets, split="train")
+        # Nothing to gain: one builder, prepared with checks left on.
+        assert fake_datasets.load_dataset_builder.call_count == 1
+        builder.download_and_prepare.assert_called_once_with()
+
+    def test_no_restriction_for_script_builder(self, fake_datasets):
+        """A script-based builder exposes no per-split ``data_files``."""
+
+        def no_data_files(source, name=None, data_files=None):
+            builder = MagicMock(name="ScriptBuilder")
+            builder.config.data_files = None
+            fake_datasets.builders.append(builder)
+            return builder
+
+        fake_datasets.load_dataset_builder.side_effect = no_data_files
+        builder = self._download(fake_datasets, split="train")
+        assert fake_datasets.load_dataset_builder.call_count == 1
+        builder.download_and_prepare.assert_called_once_with()
 
 
 # ---- Identity: Param vs Meta --------------------------------------------
@@ -130,26 +287,30 @@ class TestHFDownloaderDownload:
             repo_id="user/dataset",
             name="cfg",
             data_files="train.jsonl.gz",
-            split="train",
-            streaming=True,
         )
         result = r.download()
         assert result is True
-        fake_datasets.load_dataset.assert_called_once_with(
+        fake_datasets.load_dataset_builder.assert_called_once_with(
             "user/dataset",
             "cfg",
             data_files="train.jsonl.gz",
-            split="train",
-            streaming=True,
         )
+        # Downloading must not instantiate the dataset in memory.
+        fake_datasets.load_dataset.assert_not_called()
 
     def test_download_passes_split_regression(self, fake_datasets):
         """Regression: pre-existing bug where ``split`` was accepted but
-        dropped before ``load_dataset``. Must now be forwarded."""
+        dropped. It must still drive what gets fetched."""
         r = HFDownloader("hf", repo_id="user/dataset", split="validation")
         r.download()
-        kwargs = fake_datasets.load_dataset.call_args.kwargs
-        assert kwargs.get("split") == "validation"
+        assert list(prepared(fake_datasets).config.data_files) == ["validation"]
+
+    def test_download_streaming_is_noop(self, fake_datasets):
+        """Streaming materialises nothing: no builder, no dataset."""
+        r = HFDownloader("hf", repo_id="user/dataset", streaming=True)
+        assert r.download() is True
+        fake_datasets.load_dataset_builder.assert_not_called()
+        fake_datasets.load_dataset.assert_not_called()
 
     def test_download_with_local_path_is_noop(self, fake_datasets, tmp_path):
         local = tmp_path / "mirror"
