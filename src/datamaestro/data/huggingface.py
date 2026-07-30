@@ -62,7 +62,9 @@ class HuggingFaceDataset(Base):
         super().download()
 
         # Streaming mode never materialises anything locally.
-        if self.streaming:
+        # When local_path is set (e.g. from task output directory or local mirror),
+        # there is nothing to download from HF Hub.
+        if self.streaming or self.local_path is not None:
             return
 
         hf_download_and_prepare(
@@ -71,6 +73,14 @@ class HuggingFaceDataset(Base):
 
     @cached_property
     def data(self):
+        if self.local_path is not None:
+            from datasets import load_from_disk
+            try:
+                return load_from_disk(str(self.local_path))
+            except Exception:
+                from datasets import load_dataset
+                return load_dataset(str(self.local_path))
+
         if self.streaming:
             try:
                 from datasets import load_dataset
