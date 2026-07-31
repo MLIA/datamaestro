@@ -124,7 +124,11 @@ def hf_download_and_prepare(
 
     # A split-restricted or data_files-restricted build records fewer splits than the dataset
     # metadata declares, which trips ``verify_splits``.
-    kwargs = {"verification_mode": "no_checks"} if (restricted or data_files is not None or split is not None) else {}
+    kwargs = (
+        {"verification_mode": "no_checks"}
+        if (restricted or data_files is not None or split is not None)
+        else {}
+    )
     builder.download_and_prepare(**kwargs)
     return builder
 

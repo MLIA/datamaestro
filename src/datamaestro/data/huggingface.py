@@ -21,6 +21,14 @@ from datamaestro.download.huggingface import hf_download_and_prepare
 
 
 class HuggingFaceDataset(Base):
+    """Adapter for datasets from HuggingFace Hub or local disk mirrors.
+
+    Supports loading datasets via HuggingFace ``datasets`` with support for
+    specific configs, data files, splits, streaming mode, or loading directly
+    from a local mirror/disk path (e.g. saved via ``Dataset.save_to_disk`` or local folder,
+    This can be useful for storing preprocessed versions of the dataset e.g shuffling and filtering).
+    """
+
     repo_id: Param[str]
     """The HuggingFace repository id (e.g. ``user/dataset``)."""
 
@@ -75,10 +83,12 @@ class HuggingFaceDataset(Base):
     def data(self):
         if self.local_path is not None:
             from datasets import load_from_disk
+
             try:
                 return load_from_disk(str(self.local_path))
             except Exception:
                 from datasets import load_dataset
+
                 return load_dataset(str(self.local_path))
 
         if self.streaming:
