@@ -103,7 +103,9 @@ def _find_cached_hashed_builder(source: str, name: str):
                 info["config_name"] = hashed_name
                 info_file.write_text(json.dumps(info, indent=2), encoding="utf-8")
         except Exception as exc:
-            logger.warning("[hf] Could not update dataset_info.json at %s: %s", info_file, exc)
+            logger.warning(
+                "[hf] Could not update dataset_info.json at %s: %s", info_file, exc
+            )
 
     logger.info(
         "[hf] Offline fallback: using cached split-restricted config '%s' for '%s' (requested config '%s')",

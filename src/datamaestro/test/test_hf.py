@@ -421,7 +421,9 @@ class TestHuggingFaceOfflineHashedFallback:
 
         def mock_load_builder(source, name=None, data_files=None):
             if name == "quora" and data_files is None:
-                raise ValueError("Couldn't find cache for user/dataset for config 'quora'")
+                raise ValueError(
+                    "Couldn't find cache for user/dataset for config 'quora'"
+                )
             builder = MagicMock(name=f"Builder_{name}")
             builder.config.name = name
             return builder
@@ -433,4 +435,3 @@ class TestHuggingFaceOfflineHashedFallback:
         builder, restricted = hf_builder("user/dataset", name="quora", split="train")
         assert restricted is True
         assert builder.config.name == "quora-ccbd7fec3e15cba7"
-
