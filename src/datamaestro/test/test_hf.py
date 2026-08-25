@@ -402,3 +402,36 @@ class TestHFDownloaderCheck:
         r = HFDownloader("hf", repo_id="user/dataset", local_path=missing)
         out = r.check()
         assert out.status.value == "failed"
+
+
+class TestHuggingFaceOfflineHashedFallback:
+    def test_offline_hashed_fallback(self, monkeypatch, tmp_path):
+        from unittest.mock import MagicMock
+        import sys
+        import types
+        from datamaestro.download.huggingface import hf_builder
+
+        cache_dir = tmp_path / "hf_cache"
+        repo_dir = cache_dir / "user___dataset"
+        hashed_dir = repo_dir / "quora-ccbd7fec3e15cba7"
+        hashed_dir.mkdir(parents=True)
+
+        fake = types.ModuleType("datasets")
+        fake.config = types.SimpleNamespace(HF_DATASETS_CACHE=str(cache_dir))
+
+        def mock_load_builder(source, name=None, data_files=None):
+            if name == "quora" and data_files is None:
+                raise ValueError(
+                    "Couldn't find cache for user/dataset for config 'quora'"
+                )
+            builder = MagicMock(name=f"Builder_{name}")
+            builder.config.name = name
+            return builder
+
+        fake.load_dataset_builder = mock_load_builder
+        monkeypatch.setitem(sys.modules, "datasets", fake)
+        monkeypatch.setitem(sys.modules, "datasets.config", fake.config)
+
+        builder, restricted = hf_builder("user/dataset", name="quora", split="train")
+        assert restricted is True
+        assert builder.config.name == "quora-ccbd7fec3e15cba7"

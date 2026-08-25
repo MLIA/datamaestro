@@ -47,6 +47,75 @@ def _base_split(split: str | None) -> str | None:
     return m.group(1) if m else None
 
 
+def _find_cached_hashed_builder(source: str, name: str):
+    """Attempt to find a cached builder matching a hashed config name (e.g. ``quora-ccbd7fec3e15cba7``).
+
+    This happens when ``hf_builder`` restricted ``data_files`` during initial preparation,
+    which caused HF ``datasets`` to save the dataset under a hashed config name.
+    In offline mode, a plain ``load_dataset_builder(source, name)`` fails because the un-hashed
+    config directory does not exist on disk.
+
+    Note on HF ``datasets`` caching quirk:
+    HF ``datasets``' ``cache._find_hash_in_cache`` requires ``dataset_info.json``'s ``config_name``
+    field to match the cache subfolder name (``parts[-3]``). When a hashed builder is prepared,
+    HF ``datasets`` writes the unhashed ``config_name`` into ``dataset_info.json``. To allow
+    HF ``datasets`` cache loader to load the hashed config offline, we ensure ``dataset_info.json``
+    contains the matching hashed config name.
+    """
+    import json
+
+    try:
+        from datasets import load_dataset_builder
+        from datasets.config import HF_DATASETS_CACHE
+    except ModuleNotFoundError:
+        return None
+
+    repo_dir = Path(HF_DATASETS_CACHE) / source.replace("/", "___")
+    if not repo_dir.exists():
+        repo_dir_alt = Path(HF_DATASETS_CACHE) / source.replace("/", "---")
+        if repo_dir_alt.exists():
+            repo_dir = repo_dir_alt
+        else:
+            return None
+
+    matches = sorted(
+        [d for d in repo_dir.iterdir() if d.is_dir() and d.name.startswith(f"{name}-")],
+        key=lambda p: p.stat().st_mtime,
+        reverse=True,
+    )
+    if not matches:
+        return None
+
+    target_dir = matches[0]
+    hashed_name = target_dir.name
+
+    # Check and patch dataset_info.json if HF datasets wrote un-hashed config_name
+    for info_file in target_dir.glob("*/*/dataset_info.json"):
+        try:
+            info = json.loads(info_file.read_text(encoding="utf-8"))
+            if info.get("config_name") != hashed_name:
+                logger.info(
+                    "[hf] Updating %s config_name from '%s' to '%s' for HF datasets cache compatibility",
+                    info_file,
+                    info.get("config_name"),
+                    hashed_name,
+                )
+                info["config_name"] = hashed_name
+                info_file.write_text(json.dumps(info, indent=2), encoding="utf-8")
+        except Exception as exc:
+            logger.warning(
+                "[hf] Could not update dataset_info.json at %s: %s", info_file, exc
+            )
+
+    logger.info(
+        "[hf] Offline fallback: using cached split-restricted config '%s' for '%s' (requested config '%s')",
+        hashed_name,
+        source,
+        name,
+    )
+    return load_dataset_builder(source, hashed_name)
+
+
 def hf_builder(
     source: str,
     name: str | None = None,
@@ -74,7 +143,21 @@ def hf_builder(
         logger.error("pip install datasets")
         raise
 
-    builder = load_dataset_builder(source, name, data_files=data_files)
+    try:
+        builder = load_dataset_builder(source, name, data_files=data_files)
+    except Exception as exc:
+        if name is not None and data_files is None:
+            logger.warning(
+                "[hf] load_dataset_builder failed for source='%s', name='%s' (%s). "
+                "Checking for cached split-restricted hashed configs in HF cache...",
+                source,
+                name,
+                exc,
+            )
+            cached_builder = _find_cached_hashed_builder(source, name)
+            if cached_builder is not None:
+                return cached_builder, True
+        raise
 
     base = _base_split(split)
     if base is None:
